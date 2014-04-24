@@ -183,7 +183,8 @@ def WalkEmails(user, auth_string):
         att_path = os.path.join(TARGET_DIR, filename)
 
         while os.path.isfile(att_path):
-          att_path = "_" + att_path # Add underscores until name is unique
+          filename = "_" + filename
+          att_path = os.path.join(TARGET_DIR, filename) # Add underscores until name is unique
         with open(att_path, 'wb') as f:
           f.write(part.get_payload(decode=True))
 
