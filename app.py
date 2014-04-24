@@ -182,9 +182,12 @@ def WalkEmails(user, auth_string):
       if filename != None:
         att_path = os.path.join(TARGET_DIR, filename)
 
-        if not os.path.isfile(att_path) :
-          with open(att_path, 'wb') as f:
-            f.write(part.get_payload(decode=True))
+        while os.path.isfile(att_path):
+          att_path += "_" + att_path # Add underscores until name is unique
+        with open(att_path, 'wb') as f:
+          f.write(part.get_payload(decode=True))
+
+
 
 def GetInitialAccess():
   print 'To authorize token, visit this url and follow the directions:'
