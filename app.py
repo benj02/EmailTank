@@ -176,7 +176,7 @@ def WalkEmails(imap_conn):
     imap_conn.expunge()
     if mail.get_content_maintype() != "multipart": continue
     print "["+mail["From"]+"] :" + (mail["Subject"] or "[No Subject]")
-    for part in mail.walk():
+    for part in mail.walk(): # TODO limit 10 attachments per 
       if part.get_content_maintype() == 'multipart':
         continue
       if part.get('Content-Disposition') is None:
@@ -212,10 +212,10 @@ def RefreshAccess(refresh_token):
   return response['access_token']
 
 def WalkEmailLoop(user, auth_string):
-  conn = GetImapConnection(user, auth_string)
   while True:
+    conn = GetImapConnection(user, auth_string)
     WalkEmails(conn)
-    time.sleep(0.5)
+    time.sleep(5)
 
 if os.path.isfile("__refresh_token"):
   refresh_token = None
