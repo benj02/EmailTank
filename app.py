@@ -6,6 +6,7 @@ import sys
 import urllib
 import email
 import os
+import time
 
 ### Config
 CLIENT_ID = sys.argv[1]
@@ -150,7 +151,7 @@ def GenerateOAuth2String(username, access_token, base64_encode=True):
   return auth_string
 
 
-def WalkEmails(user, auth_string):
+def GetImapConnection(user, auth_string):
   """
   Args:
     user: The Gmail username (full email address)
@@ -161,6 +162,9 @@ def WalkEmails(user, auth_string):
   imap_conn = imaplib.IMAP4_SSL('imap.gmail.com')
   imap_conn.debug = 4
   imap_conn.authenticate('XOAUTH2', lambda x: auth_string)
+  return imap_conn
+
+def WalkEmails(imap_conn):
   imap_conn.select('[Gmail]/All Mail')
   res, data = imap_conn.search(None, "(UNSEEN)")
   data = data[0].split()
@@ -180,6 +184,7 @@ def WalkEmails(user, auth_string):
 
       filename = part.get_filename()
       if filename != None:
+        print "Found attachment: %s" % filename
         att_path = os.path.join(TARGET_DIR, filename)
 
         while os.path.isfile(att_path):
@@ -187,8 +192,6 @@ def WalkEmails(user, auth_string):
           att_path = os.path.join(TARGET_DIR, filename) # Add underscores until name is unique
         with open(att_path, 'wb') as f:
           f.write(part.get_payload(decode=True))
-
-
 
 def GetInitialAccess():
   print 'To authorize token, visit this url and follow the directions:'
@@ -208,16 +211,22 @@ def RefreshAccess(refresh_token):
   print 'Access Token Expiration Seconds: %s' % response['expires_in']
   return response['access_token']
 
+def WalkEmailLoop(user, auth_string):
+  conn = GetImapConnection(user, auth_string)
+  while True:
+    WalkEmails(conn)
+    time.sleep(0.5)
+
 if os.path.isfile("__refresh_token"):
   refresh_token = None
   with open("__refresh_token", "r") as f:
     refresh_token = f.read()
 
   access_token = RefreshAccess(refresh_token)
-  WalkEmails(SOURCE_EMAIL, GenerateOAuth2String(SOURCE_EMAIL, access_token, base64_encode=False))
+  WalkEmailLoop(SOURCE_EMAIL, GenerateOAuth2String(SOURCE_EMAIL, access_token, base64_encode=False))
 else:
   access_token, refresh_token = GetInitialAccess()
   with open("__refresh_token", "w") as f:
     f.write(refresh_token)
     print "Wrote refresh token: %s" % refresh_token
-  WalkEmails(SOURCE_EMAIL, GenerateOAuth2String(SOURCE_EMAIL, access_token, base64_encode=False))
+  WalkEmailLoop(SOURCE_EMAIL, GenerateOAuth2String(SOURCE_EMAIL, access_token, base64_encode=False))
