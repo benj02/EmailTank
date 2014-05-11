@@ -12,7 +12,7 @@ import time
 CLIENT_ID = sys.argv[1]
 CLIENT_SECRET = sys.argv[2]
 TARGET_DIR = "target"
-SOURCE_EMAIL = "benj@procnc.com"
+SOURCE_EMAIL = sys.argv[3]
 ### /Config
 
 
