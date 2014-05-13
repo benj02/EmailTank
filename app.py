@@ -164,6 +164,28 @@ def GetImapConnection(user, auth_string):
   imap_conn.authenticate('XOAUTH2', lambda x: auth_string)
   return imap_conn
 
+def ProcessMessage(msg):
+  n = 0
+  for part in msg.walk():
+    if n > 10:
+      print "  Too many attachments; bailing out!"
+    if part.get_content_maintype() == 'multipart':
+      continue
+    if part.get('Content-Disposition') is None:
+      continue
+
+    filename = part.get_filename()
+    if filename != None:
+      print "Found attachment: %s" % filename
+      n += 1
+      att_path = os.path.join(TARGET_DIR, filename)
+
+      while os.path.isfile(att_path):
+        filename = "_" + filename
+        att_path = os.path.join(TARGET_DIR, filename) # Add underscores until name is unique
+      with open(att_path, 'wb') as f:
+        f.write(part.get_payload(decode=True))
+
 def WalkEmails(imap_conn):
   imap_conn.select('[Gmail]/All Mail')
   res, data = imap_conn.search(None, "(UNSEEN)")
@@ -176,22 +198,7 @@ def WalkEmails(imap_conn):
     imap_conn.expunge()
     if mail.get_content_maintype() != "multipart": continue
     print "["+mail["From"]+"] :" + (mail["Subject"] or "[No Subject]")
-    for part in mail.walk(): # TODO limit 10 attachments per
-      if part.get_content_maintype() == 'multipart':
-        continue
-      if part.get('Content-Disposition') is None:
-        continue
-
-      filename = part.get_filename()
-      if filename != None:
-        print "Found attachment: %s" % filename
-        att_path = os.path.join(TARGET_DIR, filename)
-
-        while os.path.isfile(att_path):
-          filename = "_" + filename
-          att_path = os.path.join(TARGET_DIR, filename) # Add underscores until name is unique
-        with open(att_path, 'wb') as f:
-          f.write(part.get_payload(decode=True))
+    ProcessMessage(mail)
 
 def WalkEmailLoop(user, auth_string):
   while True:
