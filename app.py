@@ -187,7 +187,7 @@ def ProcessMessage(msg):
         f.write(part.get_payload(decode=True))
 
 def WalkEmails(imap_conn):
-  imap_conn.select('[Gmail]/All Mail')
+  imap_conn.select('Approved')
   res, data = imap_conn.search(None, "(UNSEEN)")
   data = data[0].split()
   for datum in data:
